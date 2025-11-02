@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Detection AI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at top, #0f2027, #203a43, #2c5364);
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #00ffff;
+            text-shadow: 0 0 15px #00ffffaa;
+            margin-bottom: 10px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 0 20px #00ffff33;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            margin: 8px 0;
+            padding: 10px;
+            width: 90%;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+        }
+        input, select {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        button {
+            background: linear-gradient(90deg, #00ffff, #0077ff);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #00ffff88;
+        }
+        #video, #uploadedImage {
+            width: 100%;
+            border-radius: 15px;
+            margin-top: 15px;
+        }
+        #result {
+            font-size: 1.3rem;
+            margin-top: 20px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff77;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+    select, option {
+    color: black;
+    background-color: white;
+  }
+    </style>
+</head>
+<body>
+    <h1>AI Mood Detector</h1>
+    <div class="container">
+        <form id="userForm">
+            <div class="input-section">
+                <input type="text" id="name" placeholder="Enter your name" required>
+                <input type="number" id="age" placeholder="Enter your age" required>
+                <select id="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="input-section">
+            <button id="webcamBtn" type="button">Use Webcam</button>
+            <button id="uploadBtn" type="button">Upload Image</button>
+            <input type="file" id="imageInput" accept="image/*" style="display:none;">
+        </div>
+
+        <div id="webcamSection" style="display:none;">
+            <video id="video" autoplay></video>
+            <button id="captureBtn" type="button">Capture & Detect Mood</button>
+        </div>
+
+        <img id="uploadedImage" src="" alt="Uploaded preview" style="display:none;">
+
+        <div id="result"></div>
+    </div>
+
+    <div class="footer">
+        Developed by <b>Akinola Deborah Mojoyinoluwa</b> • FinTech Department • Covenant University
+    </div>
+
+Biggest fan mjayy😚❤️✨️, [11/2/2025 9:00 PM]
+<script>
+        const webcamBtn = document.getElementById("webcamBtn");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const captureBtn = document.getElementById("captureBtn");
+        const video = document.getElementById("video");
+        const imageInput = document.getElementById("imageInput");
+        const uploadedImage = document.getElementById("uploadedImage");
+        const resultDiv = document.getElementById("result");
+        const webcamSection = document.getElementById("webcamSection");
+
+        let stream;
+        let usingWebcam = false;
+
+        // Webcam setup
+        webcamBtn.onclick = async () => {
+            usingWebcam = true;
+            uploadedImage.style.display = "none";
+            webcamSection.style.display = "block";
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Error: Unable to access camera. Please allow permission and reload.");
+                console.error("Camera access error:", err);
+            }
+        };
+
+        // Upload image setup
+        uploadBtn.onclick = () => {
+            usingWebcam = false;
+            webcamSection.style.display = "none";
+            imageInput.click();
+        };
+
+        imageInput.onchange = () => {
+            const file = imageInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                uploadedImage.src = e.target.result;
+                uploadedImage.style.display = "block";
+                detectMoodFromImage(file);
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // Capture image from webcam
+        captureBtn.onclick = async () => {
+            if (!usingWebcam) return;
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                detectMoodFromImage(blob);
+            }, "image/jpeg");
+        };
+
+        // Send to Flask backend
+        async function detectMoodFromImage(imageFile) {
+            const name = document.getElementById("name").value;
+            const age = document.getElementById("age").value;
+            const gender = document.getElementById("gender").value;
+
+            if (!name  !age  !gender) {
+                alert("Please fill in all user details first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", imageFile);
+
+            const response = await fetch("/detect_mood", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.mood) {
+                resultDiv.innerHTML = ${name} (Age ${age}, ${gender}) looks <b>${data.mood}</b> 😄;
+            } else {
+                resultDiv.innerHTML = "Error detecting mood 😔";
+            }
+        }
+    </script>
+</body>
+</html>
