@@ -1,6 +1,8 @@
 flask
-opencv-python
+tensorflow==2.20.0
+tf-keras
 deepface
-tensorflow
 pillow
 numpy
+opencv-python
+pandas
